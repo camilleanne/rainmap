@@ -2,25 +2,24 @@
 
 from math import cos, sin, atan2, pi, sqrt
 from collections import namedtuple
-import urllib2
 import json
+import shapefile
+import urllib2
 
-
-Point = namedtuple('Point', 'lat lon')
-	
+Point = namedtuple('Point', 'lon lat')	
 
 def center_geolocation(geolocations):
 	"""
-	Provide a relatively accurate center lat, lon returned as a list pair,
+	Provide a relatively accurate center lon, lat returned as a list pair,
 	givena list of list pairs.
-	ex: in: geolocations = ((lat1,lon1), (lat2,lon2),)
-		out: (center_lat, center_lon)
+	ex: in: geolocations = ((lon1,lat1), (lon2,lat2),)
+		out: (center_lon, center_lat)
 	"""
 	x = 0
 	y = 0
 	z = 0
 
-	for lat, lon in geolocations:
+	for lon, lat in geolocations:
 		lat = float(lat) * pi/180
 		lon = float(lon) * pi/180
 		x += cos(lat) * cos(lon)
@@ -38,12 +37,15 @@ def main():
 		'http://s3.amazonaws.com/static.m2i.stamen/latest_images.json')
 	data = json.load(response)
 	
+	writer = shapefile.Writer(shapefile.POINT)
 	for record in data['items']:
 		coords = record['coords'].split(":")
 		if len(coords) > 2:
 			pt1 = Point(coords[0], coords[1])
 			pt2 = Point(coords[2], coords[3])
-			print pt1, pt2, center_geolocation([pt1, pt2])
+			center = center_geolocation([pt1, pt2])
+			writer.point(center.lon, center.lat, 0)
+	writer.save('shapefile.shp')
 		
 if __name__ == '__main__':
 	main()
